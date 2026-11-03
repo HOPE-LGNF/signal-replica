@@ -262,21 +262,42 @@ export class SignalRenderer {
     m.setTransform(this.pixelScale,0,0,this.pixelScale,0,0);for(let y=pad;y<height-pad;y+=design.scanSpacing)m.fillRect(0,y,width,noise(y)>.5?1:.5);
     ctx.drawImage(mask,0,0,width,height);glyph.baseline=pad+bounds.actualBoundingBoxAscent;this.glyphs.set(digit,glyph);return glyph;
   }
+  // 矩形贴图的四边渐隐：光晕尾巴在贴到边界之前就衰减到 0，不会留下一条方框状的硬边。
+  edgeFeather(width,height,margin){
+    const canvas=makeCanvas(width,height),ctx=canvas.getContext('2d');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);
+    ctx.globalCompositeOperation='destination-out';
+    const m=Math.max(1,Math.min(Math.round(margin),Math.floor(Math.min(width,height)/2)));
+    const edge=(x0,y0,x1,y1)=>{const gradient=ctx.createLinearGradient(x0,y0,x1,y1);gradient.addColorStop(0,'rgba(0,0,0,1)');gradient.addColorStop(1,'rgba(0,0,0,0)');return gradient;};
+    ctx.fillStyle=edge(0,0,0,m);ctx.fillRect(0,0,width,m);
+    ctx.fillStyle=edge(0,height,0,height-m);ctx.fillRect(0,height-m,width,m);
+    ctx.fillStyle=edge(0,0,m,0);ctx.fillRect(0,0,m,height);
+    ctx.fillStyle=edge(width,0,width-m,0);ctx.fillRect(width-m,0,m,height);
+    return canvas;
+  }
   label(text){
     if(this.labels.has(text))return this.labels.get(text);
     if(this.labels.size>80)this.labels.clear();
     const design=this.design,family=this.sceneStyle.fonts?.textFamily??'Saira',font=`${design.labelWeight} ${design.labelSize}px ${JSON.stringify(family)}, Saira, "Microsoft YaHei", sans-serif`;this.work.font=font;
-    const pad=Math.max(4,design.labelGlowRadius*3),width=Math.ceil(this.work.measureText(text).width+pad*2),height=Math.ceil(design.labelSize*1.5+pad*2);
+    // 留白必须覆盖"光晕 + 字体阴影"的实际模糊半径，否则尾巴会在贴图边界被切断。
+    const textShadow=Number(this.sceneStyle.fonts?.textShadow)||0;
+    const pad=Math.max(4,(design.labelGlowRadius+textShadow)*3),width=Math.ceil(this.work.measureText(text).width+pad*2),height=Math.ceil(design.labelSize*1.5+pad*2);
     const canvas=makeCanvas(Math.ceil(width*this.pixelScale),Math.ceil(height*this.pixelScale)),ctx=canvas.getContext('2d');canvas.logicalWidth=width;canvas.logicalHeight=height;
     const textStroke=Number(this.sceneStyle.fonts?.textStroke)||0,configure=context=>{context.setTransform(this.pixelScale,0,0,this.pixelScale,0,0);context.font=font;if('letterSpacing'in context)context.letterSpacing=`${this.sceneStyle.fonts?.textLetterSpacing??0}px`;context.textBaseline='middle';context.textAlign='center';context.lineJoin='round';};
-    const glowRadius=design.labelGlowRadius+(Number(this.sceneStyle.fonts?.textShadow)||0),glowValue=this.sceneStyle.theme?.glowColor??'#ffffff';
+    const glowRadius=design.labelGlowRadius+textShadow,glowValue=this.sceneStyle.theme?.glowColor??'#ffffff';
     if(this.supportsFilter&&glowRadius>0&&design.labelGlowStrength>0){
       const mask=makeCanvas(canvas.width,canvas.height),maskContext=mask.getContext('2d');configure(maskContext);maskContext.fillStyle='#fff';
       if(textStroke>0){maskContext.strokeStyle='#fff';maskContext.lineWidth=textStroke*2;maskContext.strokeText(text,width/2,height/2);}maskContext.fillText(text,width/2,height/2);
       const coloured=makeCanvas(canvas.width,canvas.height),colourContext=coloured.getContext('2d');colourContext.drawImage(mask,0,0);colourContext.globalCompositeOperation='source-in';
       colourContext.fillStyle=this.paint(colourContext,glowValue,'#ffffff',{x:0,y:0,width:canvas.width,height:canvas.height});colourContext.fillRect(0,0,canvas.width,canvas.height);
-      ctx.save();ctx.filter=`blur(${glowRadius*this.pixelScale}px)`;ctx.globalAlpha=Math.min(1,.7*design.labelGlowStrength);ctx.drawImage(coloured,0,0);if(design.labelGlowStrength>1.4)ctx.drawImage(coloured,0,0);ctx.restore();
-      mask.width=1;mask.height=1;coloured.width=1;coloured.height=1;
+      // 光晕单独成层：先模糊，再把四边羽化，最后整数尺寸贴回，矩形边界因此不可见。
+      const glow=makeCanvas(canvas.width,canvas.height),glowContext=glow.getContext('2d');
+      glowContext.filter=`blur(${glowRadius*this.pixelScale}px)`;glowContext.globalAlpha=Math.min(1,.7*design.labelGlowStrength);
+      glowContext.drawImage(coloured,0,0);if(design.labelGlowStrength>1.4)glowContext.drawImage(coloured,0,0);
+      glowContext.filter='none';glowContext.globalAlpha=1;glowContext.globalCompositeOperation='destination-in';
+      glowContext.drawImage(this.edgeFeather(glow.width,glow.height,Math.max(2,Math.round(pad*this.pixelScale*.55))),0,0);
+      ctx.save();ctx.drawImage(glow,0,0,canvas.width,canvas.height);ctx.restore();
+      mask.width=1;mask.height=1;coloured.width=1;coloured.height=1;glow.width=1;glow.height=1;
     }
     configure(ctx);ctx.fillStyle=this.paint(ctx,this.sceneStyle.theme?.textColor,`rgb(${design.labelBrightness},${design.labelBrightness},${design.labelBrightness})`,{x:0,y:0,width,height});
     if(!this.supportsFilter){ctx.shadowColor=typeof glowValue==='string'&&!/^linear-gradient/i.test(glowValue)?glowValue:'#ffffff';ctx.shadowBlur=glowRadius;}
