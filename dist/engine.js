@@ -290,10 +290,11 @@ export class SignalRenderer {
       if(textStroke>0){maskContext.strokeStyle='#fff';maskContext.lineWidth=textStroke*2;maskContext.strokeText(text,width/2,height/2);}maskContext.fillText(text,width/2,height/2);
       const coloured=makeCanvas(canvas.width,canvas.height),colourContext=coloured.getContext('2d');colourContext.drawImage(mask,0,0);colourContext.globalCompositeOperation='source-in';
       colourContext.fillStyle=this.paint(colourContext,glowValue,'#ffffff',{x:0,y:0,width:canvas.width,height:canvas.height});colourContext.fillRect(0,0,canvas.width,canvas.height);
-      // 光晕单独成层：先模糊，再把四边羽化，最后整数尺寸贴回，矩形边界因此不可见。
-      const glow=makeCanvas(canvas.width,canvas.height),glowContext=glow.getContext('2d');
-      glowContext.filter=`blur(${glowRadius*this.pixelScale}px)`;glowContext.globalAlpha=Math.min(1,.7*design.labelGlowStrength);
-      glowContext.drawImage(coloured,0,0);if(design.labelGlowStrength>1.4)glowContext.drawImage(coloured,0,0);
+      // 光晕单独成层：双半径叠加（大半径铺底 + 小半径压实），再羽化四边，矩形边界因此不可见。
+      const glow=makeCanvas(canvas.width,canvas.height),glowContext=glow.getContext('2d'),strength=design.labelGlowStrength;
+      glowContext.filter=`blur(${glowRadius*this.pixelScale}px)`;glowContext.globalAlpha=Math.min(1,.4*strength);glowContext.drawImage(coloured,0,0);
+      glowContext.filter=`blur(${glowRadius*.41*this.pixelScale}px)`;glowContext.globalAlpha=Math.min(1,.6*strength);glowContext.drawImage(coloured,0,0);
+      if(strength>1.4)glowContext.drawImage(coloured,0,0);
       glowContext.filter='none';glowContext.globalAlpha=1;glowContext.globalCompositeOperation='destination-in';
       glowContext.drawImage(this.edgeFeather(glow.width,glow.height,Math.max(2,Math.round(pad*this.pixelScale*.55))),0,0);
       ctx.save();ctx.drawImage(glow,0,0,canvas.width,canvas.height);ctx.restore();
