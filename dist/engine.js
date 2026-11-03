@@ -135,15 +135,19 @@ export function numberColumns(value,time,design=DEFAULT_DESIGN){
   const count=value.length,total=Math.max(count,design.finalColumns),progress=easeInOutQuad((time-MOTION.sideStart)/design.pushDuration);
   const leftExtra=total-count,initialScale=Math.min(1,2/count),finalScale=count===1?design.finalWidth/design.singleScale:design.finalWidth;
   const columns=[];
+  // 大字符间距：右推阶段的列距按同一比例缩放，避免两段观感脱节。260 是原始默认值，保持倍率为 1。
+  const baseGap=Number.isFinite(design.characterGap)?design.characterGap:(design.numberGap??260);
+  const gapScale=baseGap/260,finalGap=Math.max(20,design.finalColumnGap*gapScale);
   for(let slot=0;slot<total;slot++){
     const source=slot-leftExtra,primary=source>=0&&source<count;
     const sourceIndex=clamp(source,0,count-1),place=total-1-slot;
     const delay=Math.min(design.pushDuration-.1,Math.max(0,leftExtra-1-slot)*design.revealStagger);
     const opacity=primary?1:smooth((time-MOTION.sideStart-delay)/(design.pushDuration-delay));
     if(!primary&&opacity<=0)continue;
-    const gap=design.finalColumnGap,initialX=(sourceIndex-(count-1)/2)*design.numberGap*initialScale,finalX=(slot-(total-1)/2)*gap;
+    const gap=finalGap,initialX=(sourceIndex-(count-1)/2)*baseGap*initialScale,finalX=(slot-(total-1)/2)*gap;
     const x=primary?initialX+(finalX-initialX)*progress:finalX-gap*(1-progress);
-    columns.push({initialDigit:primary?Number(value[sourceIndex]):0,place,rate:Math.pow(design.placeRatio,place),entryPower:count===1?3:2+sourceIndex/(count-1),entryDistance:count===1?1:.44+.56*sourceIndex/(count-1),entryIndex:sourceIndex,entryCount:count,settleAhead:primary?-sourceIndex*design.settleStagger:0,x,opacity,scaleX:initialScale+(finalScale-initialScale)*progress,scaleY:count===1?design.singleScale:1,primary});
+    const character=primary?value[sourceIndex]:'0',alphabet=primary?alphabetFor(character):ALPHABETS.digit,initialDigit=Math.max(0,alphabet.indexOf(character));
+    columns.push({initialDigit,alphabet,place,rate:Math.pow(design.placeRatio,place),entryPower:count===1?3:2+sourceIndex/(count-1),entryDistance:count===1?1:.44+.56*sourceIndex/(count-1),entryIndex:sourceIndex,entryCount:count,settleAhead:primary?-sourceIndex*design.settleStagger:0,x,opacity,scaleX:initialScale+(finalScale-initialScale)*progress,scaleY:count===1?design.singleScale:1,primary});
   }
   return columns;
 }

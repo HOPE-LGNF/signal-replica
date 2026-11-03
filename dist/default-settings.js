@@ -33,7 +33,7 @@ export const DEFAULT_SETTINGS = {
     "numberGlowStrength": 0.85,
     "scanStrength": 0,
     "scanSpacing": 6,
-    "numberGap": 260,
+    "characterGap": 260,
     "rowPitch": 300,
     "finalColumns": 5,
     "finalColumnGap": 170,
