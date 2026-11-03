@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS = {
     "scanStrength": 0,
     "scanSpacing": 6,
     "characterGap": 260,
+    "contentWidth": 1440,
     "rowPitch": 300,
     "finalColumns": 5,
     "finalColumnGap": 170,

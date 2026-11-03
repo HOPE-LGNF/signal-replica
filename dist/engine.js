@@ -356,7 +356,7 @@ export class SignalRenderer {
     if(seed!==this.noiseSeed){
       if(!this.noiseTexture)this.noiseTexture=makeCanvas(this.canvas.width,this.canvas.height);
       const texture=this.mapContext(this.noiseTexture.getContext('2d'));texture.fillStyle='#fff';texture.fillRect(0,0,this.logicalWidth,this.logicalHeight);
-      const contentWidth=Math.min(1440,this.logicalWidth),contentLeft=(this.logicalWidth-contentWidth)/2;
+      const contentWidth=clamp(Number(design.contentWidth)||1440,720,this.logicalWidth),contentLeft=(this.logicalWidth-contentWidth)/2;
       for(let i=0;i<design.noiseDensity;i++){
         const key=seed*1777+i*13,x=contentLeft+noise(key)*contentWidth,y=noise(key+1)*this.logicalHeight;
         const w=design.noiseBlockSize*(.4+noise(key+2)*3),h=design.noiseBlockSize*(.25+noise(key+3)*1.5);
@@ -376,6 +376,8 @@ export class SignalRenderer {
   render(time,options,view='grid',selectedId=options[0].id,scene={}){
     if(this.setSceneStyle(scene))this.setDesign({});
     const design=this.design,ctx=this.work,output=this.ctx,t=clamp(scene.signalTime??time,0,APP_CONFIG.duration);
+    // 内容区宽度：默认 1440（两侧各留 240），可放宽到满幅 1920，单画面的大字因此能越出原来的框。
+    const contentWidth=clamp(Number(design.contentWidth)||1440,720,this.logicalWidth);
     const effect=scene.beatEffect??{},shake=Number(effect.shake)||0,jump=Number(effect.numberJump)||0;
     const shakeX=shake?Math.sin(time*91.73)*shake*18:0,shakeY=shake?Math.sin(time*67.19+1.7)*shake*12:0;
     const panels=scene.panels??layoutPanels(options,view,selectedId,{width:this.logicalWidth,height:this.logicalHeight,...scene.layout});
@@ -383,7 +385,9 @@ export class SignalRenderer {
     this.mapContext(ctx);ctx.translate(shakeX,shakeY);
     if(t<MOTION.blankAt)panels.forEach(({option,x,y,scale,opacity=1,rotation=0})=>{
       const transform=scene.optionTransforms?.[option.id]??{};
-      ctx.save();ctx.globalAlpha*=clamp((transform.opacity??1)*opacity,0,1);ctx.translate(x+(transform.x??0),y+(transform.y??0)-jump*28);ctx.rotate((rotation+(transform.rotation??0))*Math.PI/180);ctx.scale(scale*(transform.scale??1),scale*(transform.scale??1));ctx.beginPath();ctx.rect(0,0,720,540);ctx.clip();
+      // 只有一个面板时，横向裁切范围跟随内容区宽度：小于 1440 收窄（边框更明显），大于则外溢到两侧留白。
+      const bleed=panels.length===1?(contentWidth/scale-720)/2:0;
+      ctx.save();ctx.globalAlpha*=clamp((transform.opacity??1)*opacity,0,1);ctx.translate(x+(transform.x??0),y+(transform.y??0)-jump*28);ctx.rotate((rotation+(transform.rotation??0))*Math.PI/180);ctx.scale(scale*(transform.scale??1),scale*(transform.scale??1));ctx.beginPath();ctx.rect(-bleed,0,720+bleed*2,540);ctx.clip();
       this.panel(ctx,option,panelSelectionOptions(options,option),t);ctx.restore();
     });
     this.pixelContext(output);output.globalCompositeOperation='source-over';output.globalAlpha=1;
@@ -407,7 +411,7 @@ export class SignalRenderer {
     }else output.drawImage(this.frame,0,0);
     output.globalCompositeOperation='multiply';output.drawImage(this.vignette,0,0);output.globalCompositeOperation='source-over';
     const strength=(this.glitchIntensity(t)+(Number(effect.glitch)||0))*design.glitchStrength,seed=Math.floor(t*30),entranceGlitch=entryGlitch(t);
-    const content=this.logicalRectToPixels((this.logicalWidth-Math.min(1440,this.logicalWidth))/2,0,Math.min(1440,this.logicalWidth),this.logicalHeight);
+    const content=this.logicalRectToPixels((this.logicalWidth-contentWidth)/2,0,contentWidth,this.logicalHeight);
     if(entranceGlitch==='wash'&&design.glitchStrength>0){
       output.fillStyle=scene.theme?.washColor??`rgb(${design.washBrightness},${design.washBrightness},${design.washBrightness})`;output.fillRect(0,0,this.canvas.width,this.canvas.height);
     }else if(strength){

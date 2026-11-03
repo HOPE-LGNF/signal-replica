@@ -10,7 +10,7 @@ const ORIGINAL_GROUPS=[
     field('scanStrength','字内细纹强度',0,.2,.005),field('scanSpacing','字内细纹间距',2,20,1,'px')
   ]},
   {name:'间距与滚动列',open:false,fields:[
-    field('characterGap','大字符间距',0,420,1,'px'),field('rowPitch','纵向数字间距',200,800,1,'px'),
+    field('characterGap','大字符间距',0,420,1,'px'),field('contentWidth','画面内容宽度',1080,1920,10,'px'),field('rowPitch','纵向数字间距',200,800,1,'px'),
     field('finalColumns','最终滚动列数',4,8,1,'列'),field('finalColumnGap','最终横向间距',0,340,1,'px'),
     field('finalWidth','最终数字字宽',0.2,1.2,.01),field('singleScale','单列数字大小',0.5,2.5,.01)
   ]},
@@ -66,7 +66,7 @@ const byKey=new Map(DESIGN_FIELDS.map(f=>[f.key,f]));
 const group=(name,keys,open=false)=>({name,open,fields:keys.split(' ').map(key=>byKey.get(key))});
 export const DESIGN_GROUPS=[
   group('数字外观与光晕','numberSize numberWeight numberWidth numberBrightness numberGlowRadius numberGlowStrength singleScale',true),
-  group('数字间距与列数','characterGap rowPitch finalColumns finalColumnGap finalWidth',true),
+  group('数字间距与列数','characterGap contentWidth rowPitch finalColumns finalColumnGap finalWidth',true),
   group('选项文字与位置','labelSize labelWeight labelBrightness labelGlowRadius labelGlowStrength optionGap labelLeft labelRight labelMaxWidth labelExitLeft labelExitRight'),
   group('选项入场与按下','introDuration introSpread introSize introBlur pressStart pressDuration pressFade pressOpacity'),
   group('选项选择、展开与离场','selectDuration expandDuration easingCurve easingPower sigmoidSteepness exitLetterSpread exitExpandDuration labelExitDuration'),
