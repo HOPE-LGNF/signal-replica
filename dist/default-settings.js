@@ -99,7 +99,8 @@ export const DEFAULT_SETTINGS = {
     "placeStagger": 0.32,
     "speedConverge": 6.7,
     "pushDuration": 3.7,
-    "revealStagger": 0.28
+    "revealStagger": 0.28,
+    "revealAlphabet": "digit"
   },
   "preview": {
     "view": "single",

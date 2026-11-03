@@ -13,6 +13,19 @@ export function alphabetFor(character) {
   if (/[0-9]/.test(ch)) return ALPHABETS.digit;
   return /[a-z]/.test(ch) ? ALPHABETS.lower : ALPHABETS.upper;
 }
+// 右推阶段新入场的补位列用哪套字符：加新字符集只要在这里加一行，界面下拉会自动出现。
+export const ALPHABET_PRESETS = Object.freeze([
+  { value: 'digit', label: '数字 0–9', alphabet: ALPHABETS.digit },
+  { value: 'lower', label: '小写 a–z', alphabet: ALPHABETS.lower },
+  { value: 'upper', label: '大写 A–Z', alphabet: ALPHABETS.upper },
+  { value: 'match', label: '跟随内容', alphabet: null }
+]);
+export function revealAlphabet(name, value = '0') {
+  const preset = ALPHABET_PRESETS.find(item => item.value === name);
+  if (!preset) return ALPHABETS.digit;
+  if (preset.alphabet) return preset.alphabet;
+  return alphabetFor(String(value ?? '0')[0] ?? '0');
+}
 export const MOTION = Object.freeze({ introEnd:.55, selectStart:2.93, selectEnd:3.63, expandStart:at(2.12), expandEnd:at(3.42), numberAppear:at(74/30), flashEnd:at(94/30), numberSettle:at(3.55), flashes:[[at(73/30),at(81/30)],[at(85/30),at(94/30)]], rollStart:at(5.9), sideStart:at(8.8), sideEnd:at(11.1), labelExitEnd:at(11.6), exposureStart:at(10), exitStart:16.0, exitEnd:17.42, fadeStart:17.35, blankAt:17.45, glitchBursts:[[224/30,228/30,.28]], noiseBursts:[[202/30,206/30,.55],[210/30,215/30,.6],[221/30,223/30,.35],[224/30,229/30,.65],[232/30,233/30,.45]] });
 export const PRESETS = Object.freeze([
   { id: 'four-difficulties', name: '四难度同屏', options: DEFAULT_SETTINGS.options },

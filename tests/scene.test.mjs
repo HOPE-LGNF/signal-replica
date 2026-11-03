@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateOptions,resolveOptionSource,PRESETS,APP_CONFIG,REFERENCE_OFFSET,ALPHABETS,alphabetFor} from '../dist/config.js';
+import {validateOptions,resolveOptionSource,PRESETS,APP_CONFIG,REFERENCE_OFFSET,ALPHABETS,alphabetFor,revealAlphabet} from '../dist/config.js';
 import {layoutPanels,reelPosition,optionPositions,optionEntrance,selectedOptionOpacity,preRollNoise,expansionEase,expansionProgress,easeInOutQuad,numberColumns,entryState,entryGlitch,columnPosition,reelPitch,labelPositions,placeReelPosition,placeSpeedMultiplier,reelSpeed,panelSelectionOptions,SignalRenderer} from '../dist/engine.js';
 import {MOTION} from '../dist/config.js';
 import {DEFAULT_DESIGN,DESIGN_FIELDS,DESIGN_GROUPS,validateDesign,outsideSliderRange} from '../dist/design.js';
@@ -27,6 +27,18 @@ test('letters roll inside their own case',()=>{
   const columns=numberColumns('aZ',MOTION.rollStart+1);
   assert.equal(columns[0].alphabet,ALPHABETS.lower);assert.equal(columns[0].initialDigit,0);
   assert.equal(columns[1].alphabet,ALPHABETS.upper);assert.equal(columns[1].alphabet[columns[1].initialDigit],'Z');
+});
+test('right-push reveal columns follow the configured alphabet',()=>{
+  for(const preset of ['digit','lower','upper','match']){
+    const design=validateDesign({revealAlphabet:preset});
+    const columns=numberColumns('12',MOTION.sideEnd+.1,design).filter(column=>!column.primary);
+    assert.ok(columns.length>0,preset);
+    const expected=preset==='match'?ALPHABETS.digit:ALPHABETS[preset];
+    for(const column of columns)assert.equal(column.alphabet,expected);
+  }
+  assert.equal(revealAlphabet('match','Ab')[0],'A');
+  assert.equal(revealAlphabet('match','ab')[0],'a');
+  assert.throws(()=>validateDesign({revealAlphabet:'emoji'}),/字符集选项无效/);
 });
 test('preset results are independent copies and unknown sources fail',()=>{
   const a=resolveOptionSource({mode:'preset',presetId:'ez-zero'});a[0].value='9';

@@ -1,4 +1,4 @@
-import {ALPHABETS,APP_CONFIG,MOTION,alphabetFor} from './config.js';
+import {ALPHABETS,APP_CONFIG,MOTION,alphabetFor,revealAlphabet} from './config.js';
 import {DEFAULT_DESIGN,validateDesign} from './design.js';
 import {ScreenCurve} from './screen-curve.js';
 import {createCanvasColorStyle} from './themes.js';
@@ -138,6 +138,8 @@ export function numberColumns(value,time,design=DEFAULT_DESIGN){
   // 大字符间距：右推阶段的列距按同一比例缩放，避免两段观感脱节。260 是原始默认值，保持倍率为 1。
   const baseGap=Number.isFinite(design.characterGap)?design.characterGap:(design.numberGap??260);
   const gapScale=baseGap/260,finalGap=Math.max(20,design.finalColumnGap*gapScale);
+  // 右推补位的列用哪套字符：数字 / 小写 / 大写 / 跟随内容，由设计参数决定。
+  const reveal=revealAlphabet(design.revealAlphabet,value);
   for(let slot=0;slot<total;slot++){
     const source=slot-leftExtra,primary=source>=0&&source<count;
     const sourceIndex=clamp(source,0,count-1),place=total-1-slot;
@@ -146,7 +148,7 @@ export function numberColumns(value,time,design=DEFAULT_DESIGN){
     if(!primary&&opacity<=0)continue;
     const gap=finalGap,initialX=(sourceIndex-(count-1)/2)*baseGap*initialScale,finalX=(slot-(total-1)/2)*gap;
     const x=primary?initialX+(finalX-initialX)*progress:finalX-gap*(1-progress);
-    const character=primary?value[sourceIndex]:'0',alphabet=primary?alphabetFor(character):ALPHABETS.digit,initialDigit=Math.max(0,alphabet.indexOf(character));
+    const character=primary?value[sourceIndex]:reveal[0],alphabet=primary?alphabetFor(character):reveal,initialDigit=Math.max(0,alphabet.indexOf(character));
     columns.push({initialDigit,alphabet,place,rate:Math.pow(design.placeRatio,place),entryPower:count===1?3:2+sourceIndex/(count-1),entryDistance:count===1?1:.44+.56*sourceIndex/(count-1),entryIndex:sourceIndex,entryCount:count,settleAhead:primary?-sourceIndex*design.settleStagger:0,x,opacity,scaleX:initialScale+(finalScale-initialScale)*progress,scaleY:count===1?design.singleScale:1,primary});
   }
   return columns;

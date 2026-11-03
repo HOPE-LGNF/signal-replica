@@ -58,7 +58,8 @@ const ORIGINAL_GROUPS=[
   {name:'滚动与右推',open:false,fields:[
     field('rollSpeed','整体滚动速度',.25,3,.01),field('placeRatio','高位初始速度比例',.05,.8,.01),
     field('placeStagger','各位加速错开',0,.8,.01,'s'),field('speedConverge','接近同速所需时间',4,9,.01,'s'),
-    field('pushDuration','向右推进时长',1,5,.01,'s'),field('revealStagger','高位渐入错开',0,.6,.01,'s')
+    field('pushDuration','向右推进时长',1,5,.01,'s'),field('revealStagger','高位渐入错开',0,.6,.01,'s'),
+    choice('revealAlphabet','右推新列字符集',[{value:'digit',label:'数字 0–9'},{value:'lower',label:'小写 a–z'},{value:'upper',label:'大写 A–Z'},{value:'match',label:'跟随内容'}])
   ]}
 ];
 export const DESIGN_FIELDS=ORIGINAL_GROUPS.flatMap(group=>group.fields);
@@ -71,7 +72,7 @@ export const DESIGN_GROUPS=[
   group('选项入场与按下','introDuration introSpread introSize introBlur pressStart pressDuration pressFade pressOpacity'),
   group('选项选择、展开与离场','selectDuration expandDuration easingCurve easingPower sigmoidSteepness exitLetterSpread exitExpandDuration labelExitDuration'),
   group('数字对齐与就位','settleWindow settleStagger'),
-  group('加速滚动与右推','rollSpeed placeRatio placeStagger speedConverge pushDuration revealStagger'),
+  group('加速滚动与右推','rollSpeed placeRatio placeStagger speedConverge pushDuration revealStagger revealAlphabet',true),
   group('画面亮度与拖影','centerBrightness edgeBrightness vignetteKnee motionBlur'),
   group('扫描线与曲面','scanStrength scanSpacing scanLineStrength scanLineSpacing scanLineWidth screenCurve screenCurvature'),
   group('噪声与故障','noiseStrength noiseDensity noiseBlockSize noiseBandStrength glitchStrength flashBrightness washBrightness'),
