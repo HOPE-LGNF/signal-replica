@@ -1,4 +1,4 @@
-import {APP_CONFIG,MOTION} from './config.js';
+import {ALPHABETS,APP_CONFIG,MOTION,alphabetFor} from './config.js';
 import {DEFAULT_DESIGN,validateDesign} from './design.js';
 import {ScreenCurve} from './screen-curve.js';
 import {createCanvasColorStyle} from './themes.js';
@@ -221,6 +221,14 @@ export class SignalRenderer {
     this.noiseTexture=null;this.noiseSeed=-1;
     this.signalDistortion??=new SignalDistortion(this.canvas.width,this.canvas.height);
   }
+  // 大写字高决定共用基线：字母和数字落在同一条基线上，而不是各自按墨迹居中。
+  capAscent(){
+    if(this.capAscentValue)return this.capAscentValue;
+    const design=this.design,family=this.sceneStyle.fonts?.numberFamily??'Saira';
+    this.work.font=`${design.numberWeight} ${design.numberSize}px ${JSON.stringify(family)}, Saira`;
+    this.capAscentValue=this.work.measureText('H').actualBoundingBoxAscent||design.numberSize*.72;
+    return this.capAscentValue;
+  }
   glyph(digit){
     if(this.glyphs.has(digit))return this.glyphs.get(digit);
     const design=this.design,probe=this.work,family=this.sceneStyle.fonts?.numberFamily??'Saira';probe.font=`${design.numberWeight} ${design.numberSize}px ${JSON.stringify(family)}, Saira`;
@@ -246,7 +254,7 @@ export class SignalRenderer {
     m.resetTransform();m.globalCompositeOperation='source-in';
     m.fillStyle=this.paint(m,this.sceneStyle.theme?.numberColor,`rgb(${design.numberBrightness},${design.numberBrightness},${design.numberBrightness})`,{x:0,y:0,width:glyph.width,height:glyph.height});m.fillRect(0,0,glyph.width,glyph.height);m.globalCompositeOperation='source-atop';m.fillStyle=`rgba(255,255,255,${design.scanStrength})`;
     m.setTransform(this.pixelScale,0,0,this.pixelScale,0,0);for(let y=pad;y<height-pad;y+=design.scanSpacing)m.fillRect(0,y,width,noise(y)>.5?1:.5);
-    ctx.drawImage(mask,0,0,width,height);this.glyphs.set(digit,glyph);return glyph;
+    ctx.drawImage(mask,0,0,width,height);glyph.baseline=pad+bounds.actualBoundingBoxAscent;this.glyphs.set(digit,glyph);return glyph;
   }
   label(text){
     if(this.labels.has(text))return this.labels.get(text);
@@ -320,14 +328,14 @@ export class SignalRenderer {
       const sampled=Math.max(0,time-shutter*sample/Math.max(1,samples-1));
       for(const column of columns){
         const position=columnPosition(column,sampled,design),whole=Math.floor(position),fraction=position-whole;
-        const {x,scaleX,scaleY,opacity}=column,pitch=reelPitch(scaleY,design);
+        const {x,scaleX,scaleY,opacity}=column,pitch=reelPitch(scaleY,design),baselineOffset=this.capAscent()*scaleY/2;
         ctx.globalAlpha=sampleAlpha*opacity;
         for(let k=-2;k<=2;k++){
           const y=(k-fraction)*pitch;
-          const digit=modulo(column.initialDigit+whole+k,10);
-          const glyph=this.glyph(digit),w=(glyph.logicalWidth??glyph.width)*scaleX*scaleY,h=(glyph.logicalHeight??glyph.height)*scaleY;
+          const char=column.alphabet[modulo(column.initialDigit+whole+k,column.alphabet.length)];
+          const glyph=this.glyph(char),w=(glyph.logicalWidth??glyph.width)*scaleX*scaleY,h=(glyph.logicalHeight??glyph.height)*scaleY;
           if(Math.abs(y)>270+h/2)continue;
-          ctx.drawImage(glyph,x-w/2,y-h/2,w,h);
+          ctx.drawImage(glyph,x-w/2,y+baselineOffset-(glyph.baseline??(glyph.logicalHeight??glyph.height)*.5)*scaleY,w,h);
         }
       }
     }ctx.restore();
@@ -424,6 +432,6 @@ export class SignalRenderer {
     for(const canvas of [this.canvas,this.frame,this.compressed,this.softened,this.vignette,this.scanlines,this.noiseTexture,...this.glyphs.values(),...this.labels.values()]){
       if(canvas){canvas.width=1;canvas.height=1;}
     }
-    this.glyphs.clear();this.labels.clear();
+    this.glyphs.clear();this.labels.clear();this.capAscentValue=0;
   }
 }

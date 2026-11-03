@@ -110,7 +110,7 @@ function renderEditor(){
     const row=document.createElement('div');row.className='option-row';
     const number=document.createElement('span');number.className='row-index';number.textContent=String(index+1).padStart(2,'0');
     const label=document.createElement('input');label.value=option.label;label.setAttribute('aria-label',`选项 ${index+1} 名称`);label.maxLength=APP_CONFIG.maxLabelLength;label.readOnly=locked;label.autocomplete='off';label.spellcheck=false;
-    const value=document.createElement('input');value.value=option.value;value.className='number-input';value.inputMode='numeric';value.maxLength=4;value.setAttribute('aria-label',`选项 ${index+1} 数字`);value.readOnly=locked;value.autocomplete='off';
+    const value=document.createElement('input');value.value=option.value;value.className='number-input';value.maxLength=4;value.setAttribute('aria-label',`选项 ${index+1} 数字或字母`);value.readOnly=locked;value.autocomplete='off';value.spellcheck=false;
     const remove=document.createElement('button');remove.textContent='×';remove.className='remove-option';remove.setAttribute('aria-label',`删除选项 ${index+1}`);remove.disabled=state.options.length===1;remove.hidden=locked;
     const error=document.createElement('p');error.className='field-error';error.hidden=true;error.id=`error-${index}`;
     for(const input of [label,value]){

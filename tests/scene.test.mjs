@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateOptions,resolveOptionSource,PRESETS,APP_CONFIG,REFERENCE_OFFSET} from '../dist/config.js';
+import {validateOptions,resolveOptionSource,PRESETS,APP_CONFIG,REFERENCE_OFFSET,ALPHABETS,alphabetFor} from '../dist/config.js';
 import {layoutPanels,reelPosition,optionPositions,optionEntrance,selectedOptionOpacity,preRollNoise,expansionEase,expansionProgress,easeInOutQuad,numberColumns,entryState,entryGlitch,columnPosition,reelPitch,labelPositions,placeReelPosition,placeSpeedMultiplier,reelSpeed,panelSelectionOptions,SignalRenderer} from '../dist/engine.js';
 import {MOTION} from '../dist/config.js';
 import {DEFAULT_DESIGN,DESIGN_FIELDS,DESIGN_GROUPS,validateDesign,outsideSliderRange} from '../dist/design.js';
@@ -12,12 +12,21 @@ test('zero, leading zeroes and full-width digits remain usable',()=>{
   assert.equal(data[0].value,'0');assert.equal(data[1].value,'007');
 });
 test('reject malformed content and duplicate identities',()=>{
-  for(const value of ['','-1','1.5','1e3','12345','<b>'])assert.throws(()=>validateOptions([{id:'a',label:'EZ',value}]));
+  for(const value of ['','-1','1.5','12345','<b>','1 2'])assert.throws(()=>validateOptions([{id:'a',label:'EZ',value}]));
   assert.throws(()=>validateOptions([{id:'a',label:' ',value:'0'}]));
   assert.throws(()=>validateOptions([{id:'a',label:'EZ',value:'0'},{id:'a',label:'HD',value:'1'}]));
   assert.throws(()=>validateOptions([]));
   assert.equal(validateOptions(Array.from({length:16},(_,i)=>({id:String(i),label:'X',value:'0'}))).length,16);
   assert.throws(()=>validateOptions(Array.from({length:17},(_,i)=>({id:String(i),label:'X',value:'0'}))),/1–16/);
+});
+test('letters roll inside their own case',()=>{
+  assert.equal(alphabetFor('0'),'0123456789');
+  assert.equal(alphabetFor('m'),'abcdefghijklmnopqrstuvwxyz');
+  assert.equal(alphabetFor('M'),'ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+  assert.equal(validateOptions([{id:'a',label:'EZ',value:'Az9'}])[0].value,'Az9');
+  const columns=numberColumns('aZ',MOTION.rollStart+1);
+  assert.equal(columns[0].alphabet,ALPHABETS.lower);assert.equal(columns[0].initialDigit,0);
+  assert.equal(columns[1].alphabet,ALPHABETS.upper);assert.equal(columns[1].alphabet[columns[1].initialDigit],'Z');
 });
 test('preset results are independent copies and unknown sources fail',()=>{
   const a=resolveOptionSource({mode:'preset',presetId:'ez-zero'});a[0].value='9';

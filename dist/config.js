@@ -2,6 +2,17 @@ import {DEFAULT_SETTINGS} from './default-settings.js';
 export const REFERENCE_OFFSET=64/30;
 const at=time=>time+REFERENCE_OFFSET;
 export const APP_CONFIG = Object.freeze({ optionSource: { mode: 'custom', presetId: 'four-difficulties' }, preview:DEFAULT_SETTINGS.preview, maxOptions: 16, maxDigits: 4, maxLabelLength: 12, duration: 17.507845804988662, stillTime: at(4.5) });
+export const ALPHABETS = Object.freeze({
+  digit: '0123456789',
+  lower: 'abcdefghijklmnopqrstuvwxyz',
+  upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+});
+// 每一列按自己的字符决定轮询集合：数字 10 位、小写 26、大写 26。
+export function alphabetFor(character) {
+  const ch = String(character ?? '');
+  if (/[0-9]/.test(ch)) return ALPHABETS.digit;
+  return /[a-z]/.test(ch) ? ALPHABETS.lower : ALPHABETS.upper;
+}
 export const MOTION = Object.freeze({ introEnd:.55, selectStart:2.93, selectEnd:3.63, expandStart:at(2.12), expandEnd:at(3.42), numberAppear:at(74/30), flashEnd:at(94/30), numberSettle:at(3.55), flashes:[[at(73/30),at(81/30)],[at(85/30),at(94/30)]], rollStart:at(5.9), sideStart:at(8.8), sideEnd:at(11.1), labelExitEnd:at(11.6), exposureStart:at(10), exitStart:16.0, exitEnd:17.42, fadeStart:17.35, blankAt:17.45, glitchBursts:[[224/30,228/30,.28]], noiseBursts:[[202/30,206/30,.55],[210/30,215/30,.6],[221/30,223/30,.35],[224/30,229/30,.65],[232/30,233/30,.45]] });
 export const PRESETS = Object.freeze([
   { id: 'four-difficulties', name: '四难度同屏', options: DEFAULT_SETTINGS.options },
@@ -13,7 +24,7 @@ export function validateOption(option) {
   const label = String(option.label ?? '').trim();
   const value = String(option.value ?? '').trim().replace(/[０-９]/g, c => String(c.charCodeAt(0)-65296));
   if (!label || Array.from(label).length > APP_CONFIG.maxLabelLength) throw new Error('选项名称需为 1–12 个字符。');
-  if (!/^\d{1,4}$/.test(value)) throw new Error('数字需为 1–4 位非负整数。');
+  if (!/^[0-9A-Za-z]{1,4}$/.test(value)) throw new Error('内容需为 1–4 位数字或英文字母。');
   if (typeof option.id !== 'string' || !option.id.trim()) throw new Error('选项缺少有效标识。');
   return { id: option.id, label, value };
 }
