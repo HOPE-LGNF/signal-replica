@@ -1,5 +1,6 @@
 // All adjustable visual values have one definition for rendering and the editor.
 import {DEFAULT_SETTINGS} from './default-settings.js';
+import {ALPHABET_PRESETS} from './config.js';
 const field=(key,label,min,max,step,unit='')=>({key,label,value:DEFAULT_SETTINGS.design[key],min,max,step,unit});
 const choice=(key,label,options)=>({key,label,value:DEFAULT_SETTINGS.design[key],options});
 const ORIGINAL_GROUPS=[
@@ -59,7 +60,7 @@ const ORIGINAL_GROUPS=[
     field('rollSpeed','整体滚动速度',.25,3,.01),field('placeRatio','高位初始速度比例',.05,.8,.01),
     field('placeStagger','各位加速错开',0,.8,.01,'s'),field('speedConverge','接近同速所需时间',4,9,.01,'s'),
     field('pushDuration','向右推进时长',1,5,.01,'s'),field('revealStagger','高位渐入错开',0,.6,.01,'s'),
-    choice('revealAlphabet','右推新列字符集',[{value:'digit',label:'数字 0–9'},{value:'lower',label:'小写 a–z'},{value:'upper',label:'大写 A–Z'},{value:'match',label:'跟随内容'}])
+    choice('revealAlphabet','右推新列字符集',ALPHABET_PRESETS.map(preset=>({value:preset.value,label:preset.label})))
   ]}
 ];
 export const DESIGN_FIELDS=ORIGINAL_GROUPS.flatMap(group=>group.fields);
