@@ -320,11 +320,16 @@ function previewAudioState(time){
   if(settings.fadeIn>0)gain*=Math.min(1,local/settings.fadeIn);if(settings.fadeOut>0)gain*=Math.min(1,Math.max(0,end-time)/settings.fadeOut);
   return{active:true,sourceTime,gain};
 }
+// 只有真正的解码/格式故障才关掉声音；AbortError 是 pause()/seek() 打断 play()，属于正常竞争。
+function audioFailure(error){
+  if(error?.name==='AbortError'||error?.name==='NotAllowedError')return;
+  state.sound=false;updateSoundButton();announce('当前音轨无法播放，画面仍可预览。');
+}
 function syncAudioToProjectTime(time,shouldPlay=state.playing&&state.sound){
   const mapped=previewAudioState(time);audio.volume=clamp(mapped.gain,0,1);
   if(!mapped.active){audio.pause();return;}
   if(Math.abs(audio.currentTime-mapped.sourceTime)>.06)audio.currentTime=mapped.sourceTime;
-  if(shouldPlay&&audio.paused)void audio.play().catch(()=>{state.sound=false;updateSoundButton();announce('当前音轨无法播放，画面仍可预览。');});
+  if(shouldPlay&&audio.paused&&!audio.ended)void audio.play().catch(audioFailure);
 }
 function syncProjectAudioElement(){
   const source=state.project.audio.source,desired=source==='original'?'assets/audio.wav':source==='custom'?customAudioAsset?.objectUrl??null:null,current=audio.getAttribute('src');
@@ -339,13 +344,13 @@ function frame(now){
 async function play(){
   if(!state.ready||state.playing)return;if(state.time>=projectDuration())state.time=0;
   timeStart=state.time;clockStart=performance.now();state.playing=true;
-  if(state.sound){syncAudioToProjectTime(state.time,false);try{if(previewAudioState(state.time).active)await audio.play();}catch{state.sound=false;updateSoundButton();announce('音频暂时无法播放，画面仍可预览。');}}
+  if(state.sound){syncAudioToProjectTime(state.time,false);try{if(previewAudioState(state.time).active)await audio.play();}catch(error){audioFailure(error);}}
   if(!state.playing)return;updatePlayButton();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);
 }
 function updateSoundButton(){$('sound').textContent=state.sound?'声音开启':'声音关闭';$('sound').setAttribute('aria-pressed',String(state.sound));}
 async function toggleSound(){
   state.sound=!state.sound;timeStart=state.time;clockStart=performance.now();
-  if(!state.sound)audio.pause();else if(state.playing){syncAudioToProjectTime(state.time,false);try{if(previewAudioState(state.time).active)await audio.play();}catch{state.sound=false;announce('音频暂时无法播放。');}}updateSoundButton();
+  if(!state.sound)audio.pause();else if(state.playing){syncAudioToProjectTime(state.time,false);try{if(previewAudioState(state.time).active)await audio.play();}catch(error){audioFailure(error);}}updateSoundButton();
 }
 function snapshot(){return structuredClone({project:state.project,options:state.options,optionSource:state.source,design:state.design,view:state.view,aspect:state.aspect,framing:state.framing,selectedId:state.selectedId,time:state.time,phase:phaseLabel(),playing:state.playing,sound:state.sound,ready:state.ready});}
 $('view-grid').onclick=()=>setView('grid');$('view-single').onclick=()=>setView('single');$('selected-option').onchange=e=>setView('single',e.target.value);
